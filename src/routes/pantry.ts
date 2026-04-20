@@ -33,6 +33,15 @@ router.put('/:ingredientId', async (req: Request, res: Response, next: NextFunct
   }
 });
 
+router.delete('/', async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    await prisma.pantry.deleteMany();
+    res.status(204).send();
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.delete('/:ingredientId', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const ingredientId = Number(req.params.ingredientId);
