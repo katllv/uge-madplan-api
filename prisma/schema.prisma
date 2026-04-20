@@ -1,0 +1,91 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Person {
+  id         Int         @id @default(autoincrement())
+  name       String
+  color      String      @default("#4A90D9")
+  recipeTags RecipeTag[]
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+}
+
+model Ingredient {
+  id                 Int                 @id @default(autoincrement())
+  name               String              @unique
+  unit               String              @default("")
+  recipeIngredients  RecipeIngredient[]
+  pantryItems        Pantry[]
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+}
+
+model Recipe {
+  id           Int                @id @default(autoincrement())
+  title        String
+  instructions String             @db.Text
+  servings     Int                @default(4)
+  difficulty   Int                @default(3)
+  imageUrl     String?
+  ingredients  RecipeIngredient[]
+  tags         RecipeTag[]
+  mealPlanDays MealPlanDay[]
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+}
+
+model RecipeIngredient {
+  id           Int        @id @default(autoincrement())
+  recipe       Recipe     @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  recipeId     Int
+  ingredient   Ingredient @relation(fields: [ingredientId], references: [id])
+  ingredientId Int
+  amount       String
+
+  @@unique([recipeId, ingredientId])
+}
+
+model RecipeTag {
+  id       Int    @id @default(autoincrement())
+  recipe   Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  recipeId Int
+  person   Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+  personId Int
+
+  @@unique([recipeId, personId])
+}
+
+model MealPlan {
+  id        Int           @id @default(autoincrement())
+  startDate DateTime      @db.Date
+  days      MealPlanDay[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@unique([startDate])
+}
+
+model MealPlanDay {
+  id         Int      @id @default(autoincrement())
+  mealPlan   MealPlan @relation(fields: [mealPlanId], references: [id], onDelete: Cascade)
+  mealPlanId Int
+  dayOfWeek  Int
+  recipe     Recipe?  @relation(fields: [recipeId], references: [id])
+  recipeId   Int?
+
+  @@unique([mealPlanId, dayOfWeek])
+}
+
+model Pantry {
+  id           Int        @id @default(autoincrement())
+  ingredient   Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+  ingredientId Int        @unique
+  amount       String
+  updatedAt    DateTime   @updatedAt
+}
