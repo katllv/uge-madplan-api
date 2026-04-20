@@ -4,6 +4,7 @@
   "description": "Uge Madplan API - Family meal planning backend",
   "main": "dist/server.js",
   "scripts": {
+    "postinstall": "prisma generate",
     "start": "node dist/server.js",
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
