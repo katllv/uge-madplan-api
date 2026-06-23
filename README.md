@@ -238,6 +238,7 @@ The generator shuffles all available recipes and assigns one per day (Mon–Sun)
 |--------|------|-------------|
 | GET | `/api/pantry` | List everything currently at home |
 | PUT | `/api/pantry/:ingredientId` | Add or update a pantry item |
+| DELETE | `/api/pantry` | Clear the entire pantry |
 | DELETE | `/api/pantry/:ingredientId` | Remove a pantry item |
 
 **Body (PUT):** `{ "amount": "1 dåse" }`
