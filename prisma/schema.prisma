@@ -32,7 +32,7 @@ model Recipe {
   instructions String             @db.Text
   servings     Int                @default(4)
   difficulty   Int                @default(3)
-  imageUrl     String?
+  imageUrl     String?            @db.MediumText
   ingredients  RecipeIngredient[]
   tags         RecipeTag[]
   mealPlanDays MealPlanDay[]
