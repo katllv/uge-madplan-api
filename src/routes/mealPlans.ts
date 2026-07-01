@@ -134,45 +134,47 @@ router.post('/generate', async (req: Request, res: Response, next: NextFunction)
     const assigned: (number | null)[] = new Array(7).fill(null);
     const used = new Set<number>();
 
-    for (let day = 0; day < 7; day++) {
-      // People who must have liked yesterday's meal (because they won't like today's)
-      // We pick today's recipe first, then verify or swap yesterday's if needed.
-      let picked = shuffled.find((r) => !used.has(r.id)) ?? null;
-      if (!picked) break;
+    //backtracking search: day 0 is unconstrained; for day > 0, everyone who dislikes today's recipe must have liked yesterday's. 
+    const assign = (day: number): boolean => {
+      //all days assigned
+      if (day === 7) return true;
 
-      if (day > 0) {
-        const prevId = assigned[day - 1];
-        const prevLiked = prevId ? likedBy(prevId) : new Set<number>();
+      for (const candidate of shuffled) {
+        //skip already used recipes
+        if (used.has(candidate.id)) continue;
 
-        // Who won't like today's recipe?
-        const todayLiked = likedBy(picked.id);
-        const dislikers = peopleIds.filter((pid) => !todayLiked.has(pid));
-
-        // Check that all dislikers liked yesterday's recipe
-        const prevCoversDislikers = dislikers.every((pid) => prevLiked.has(pid));
-
-        if (!prevCoversDislikers) {
-          // Try to find a today-candidate for which the previous meal already covers dislikers,
-          // OR swap yesterday's assignment to one that covers today's dislikers.
-          const alternative = shuffled.find((r) => {
-            if (used.has(r.id)) return false;
-            const rLiked = likedBy(r.id);
-            const rDislikers = peopleIds.filter((pid) => !rLiked.has(pid));
-            return rDislikers.every((pid) => prevLiked.has(pid));
-          });
-
-          if (alternative) {
-            picked = alternative;
-          }
-          // If no valid swap found, keep original pick (best-effort)
+        if (day > 0) {
+          const prevId = assigned[day - 1];
+          const prevLiked = prevId ? likedBy(prevId) : new Set<number>();
+          const todayLiked = likedBy(candidate.id);
+          //anyone who won't like today's candidate...
+          const dislikers = peopleIds.filter((pid) => !todayLiked.has(pid));
+          //...must have liked yesterday's recipe, or this candidate is invalid.
+          if (!dislikers.every((pid) => prevLiked.has(pid))) continue;
         }
+
+        //tentatively take this candidate and recurse into the next day.
+        assigned[day] = candidate.id;
+        used.add(candidate.id);
+
+        if (assign(day + 1)) return true;
+
+        //recursion failed further down the week - undo and try the next candidate.
+        used.delete(candidate.id);
+        assigned[day] = null;
       }
 
-      assigned[day] = picked.id;
-      used.add(picked.id);
+      return false;
+    };
+
+    if (!assign(0)) {
+      res.status(422).json({
+        error: 'Kunne ikke generere en gyldig madplan med de nuværende opskrifter og præferencer',
+      });
+      return;
     }
 
-    // Upsert the meal plan and its days
+    //upsert mealplan
     const plan = await prisma.mealPlan.upsert({
       where: { startDate: new Date(startDate) },
       update: {},
